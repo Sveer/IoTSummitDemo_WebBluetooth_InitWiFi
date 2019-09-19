@@ -1,0 +1,70 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <input placeholder="ssid" id="ssid" value="prn" /><br />
+    <input placeholder="password" id="pass" type="password" value="qazwsxokm" />
+    <button id="initdevice">Init device</button>
+
+    <div id="animations"></div>
+</div>
+
+
+@section Scripts{
+
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.1.2/howler.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.4/Pizzicato.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.6.0/two.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+
+
+
+
+    <script src="js/animations.js"></script>
+    <script src="js/mqttclient.js"></script>
+
+
+    <script>
+        window.log = console.log;
+        window.onload = () => {
+            const button = document.getElementById('initdevice')
+            button.addEventListener('pointerup', function (event) {
+                navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: ['M5'] }],
+                    optionalServices: ['12345678-90ab-cdef-0123-456789abcdef']
+                }).then(function (device) {
+                    //Добавляем
+                    if (!device.gatt.connected) {
+                        return device.gatt.connect().then(server => {
+                            log('GATT подключен, ищем сервисы...');
+
+                            return server.getPrimaryService('12345678-90ab-cdef-0123-456789abcdef');
+                        }).
+                            then(service => {
+                                log('Сервис нашли, берем характеристики...');
+
+                                return service.getCharacteristic('22222222-90ab-cdef-0123-456789abcdef');
+                            }).
+                            then(characteristic => {
+                                log('Нашли подходящую характеристику');
+                                var wifiSet = document.getElementById('ssid').value + ";" + document.getElementById('pass').value;
+                                characteristic.writeValue(new TextEncoder().encode(wifiSet));
+
+                                return characteristic;
+                            });
+                    } else {
+                        return Promise.resolve();
+                    }
+
+
+                });
+
+            });
+        };
+
+    </script>
+}
